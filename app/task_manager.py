@@ -2,12 +2,14 @@ from datetime import datetime
 from db_handler import DatabaseHandler
 from calendar_adapter import CalendarAdapter
 from task_factory import TaskFactory
+import pytz
 
 class TaskManager:
     def __init__(self):
         self.db = DatabaseHandler()
         self.calendar = CalendarAdapter()
         self.task_factory = TaskFactory()
+        self.timezone = pytz.timezone('America/New_York')
 
     def setup(self):
         """Initialize the database connection"""
@@ -15,6 +17,10 @@ class TaskManager:
 
     def create_task(self, title: str, description: str, deadline: datetime):
         """Create a new task and save it to the database"""
+        # Convert naive datetime to EST timezone
+        if deadline.tzinfo is None:
+            deadline = self.timezone.localize(deadline)
+            
         task = self.task_factory.create_task(
             title=title,
             description=description,

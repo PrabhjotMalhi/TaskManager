@@ -19,25 +19,45 @@ class CalendarAdapter:
 
     def _authenticate(self):
         """Authenticate with Google Calendar API"""
+        print("Starting Google Calendar authentication...")
+        
         # The file token.pickle stores the user's access and refresh tokens
         if os.path.exists('token.pickle'):
+            print("Found existing token.pickle file")
             with open('token.pickle', 'rb') as token:
                 self.creds = pickle.load(token)
+        else:
+            print("No token.pickle file found")
         
         # If there are no (valid) credentials available, let the user log in.
         if not self.creds or not self.creds.valid:
+            print("No valid credentials found, starting OAuth flow")
             if self.creds and self.creds.expired and self.creds.refresh_token:
+                print("Refreshing expired credentials")
                 self.creds.refresh(Request())
             else:
-                flow = InstalledAppFlow.from_client_secrets_file(
-                    'credentials.json', self.SCOPES)
-                self.creds = flow.run_local_server(port=0)
+                print("Starting new OAuth flow")
+                try:
+                    flow = InstalledAppFlow.from_client_secrets_file(
+                        'credentials.json', self.SCOPES)
+                    print("Opening browser for authentication...")
+                    self.creds = flow.run_local_server(port=0)
+                except Exception as e:
+                    print(f"Error during OAuth flow: {e}")
+                    raise
             
             # Save the credentials for the next run
+            print("Saving new credentials to token.pickle")
             with open('token.pickle', 'wb') as token:
                 pickle.dump(self.creds, token)
 
-        self.service = build('calendar', 'v3', credentials=self.creds)
+        try:
+            print("Building Google Calendar service...")
+            self.service = build('calendar', 'v3', credentials=self.creds)
+            print("Google Calendar authentication successful!")
+        except Exception as e:
+            print(f"Error building calendar service: {e}")
+            raise
 
     def add_task_to_calendar(self, task: Task) -> bool:
         """Add a task to Google Calendar"""
@@ -46,11 +66,11 @@ class CalendarAdapter:
             'description': f"Task ID: {task.id}\n{task.description}",
             'start': {
                 'dateTime': task.deadline.isoformat(),
-                'timeZone': 'UTC',
+                'timeZone': 'America/New_York',
             },
             'end': {
                 'dateTime': task.deadline.isoformat(),
-                'timeZone': 'UTC',
+                'timeZone': 'America/New_York',
             },
             'reminders': {
                 'useDefault': True

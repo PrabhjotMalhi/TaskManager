@@ -49,10 +49,41 @@ class TaskManager:
             return True
         return False
 
-    def delete_task(self, task_id: int):
+    def edit_task(self, task_id: int, title: str = None, description: str = None, deadline: datetime = None) -> bool:
+        """Edit an existing task"""
+        tasks = self.db.get_all_tasks()
+        task = next((t for t in tasks if t.id == task_id), None)
+        
+        if task:
+            if title:
+                task.title = title
+            if description:
+                task.description = description
+            if deadline:
+                # Convert naive datetime to EST timezone if needed
+                if deadline.tzinfo is None:
+                    deadline = self.timezone.localize(deadline)
+                task.deadline = deadline
+            
+            # Update in database
+            self.db.update_task(task)
+            
+            # Update in calendar
+            self.calendar.remove_task_from_calendar(task_id)
+            self.calendar.add_task_to_calendar(task)
+            
+            return True
+        return False
+
+    def delete_task(self, task_id: int) -> bool:
         """Delete a task"""
-        self.db.delete_task(task_id)
-        self.calendar.remove_task_from_calendar(task_id)
+        try:
+            self.db.delete_task(task_id)
+            self.calendar.remove_task_from_calendar(task_id)
+            return True
+        except Exception as e:
+            print(f"Error deleting task: {e}")
+            return False
 
     def __del__(self):
         """Cleanup database connection"""

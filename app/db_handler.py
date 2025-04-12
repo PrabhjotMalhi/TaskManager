@@ -2,8 +2,13 @@ import psycopg2
 from datetime import datetime
 from models import Task
 import os
+from dotenv import load_dotenv
 import subprocess
 from typing import List
+from pathlib import Path
+
+# Load environment variables from .env file
+load_dotenv(dotenv_path=Path('.') / '.env')
 
 class DatabaseHandler:
     def __init__(self):
@@ -11,15 +16,16 @@ class DatabaseHandler:
         self.cursor = None
         # Get connection details from environment variables for security
         self.db_config = {
-            'dbname': os.getenv('DB_NAME', 'taskflow'),
-            'user': os.getenv('DB_USER', 'postgres'),
+            'dbname': os.getenv('DB_NAME'),
+            'user': os.getenv('DB_USER'),
             'password': os.getenv('DB_PASSWORD'),
-            'host': os.getenv('DB_HOST', 'localhost'),
-            'port': os.getenv('DB_PORT', '5432')
+            'host': os.getenv('DB_HOST'),
+            'port': os.getenv('DB_PORT')
         }
 
     def connect(self):
         """Connect to PostgreSQL database"""
+        print(f"Attempting to connect to database: {self.db_config['dbname']} at {self.db_config['host']}:{self.db_config['port']} with user {self.db_config['user']}")
         self.conn = psycopg2.connect(**self.db_config)
         self.cursor = self.conn.cursor()
         self._create_tables()
@@ -41,6 +47,10 @@ class DatabaseHandler:
 
     def _setup_backup(self):
         """Setup daily database backups"""
+        # Skip backup setup on Windows
+        if os.name == 'nt':  # Windows
+            return
+            
         backup_script = f"""
         #!/bin/bash
         BACKUP_DIR="/var/backups/taskflow"
